@@ -10,10 +10,10 @@
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 
-<http://w3id.org/sepses/ontology/cskg/properties>
+<http://w3id.org/sepses/ontology/socrates/properties>
     a owl:Ontology ;
-    rdfs:label "CSKG Datatype Properties"@en ;
-    owl:imports <http://w3id.org/sepses/ontology/cskg/classes> .
+    rdfs:label "SOCrates Datatype Properties"@en ;
+    owl:imports <http://w3id.org/sepses/ontology/socrates/classes> .
 
 cve:id a owl:DatatypeProperty ; rdfs:domain cve:CVE ; rdfs:range xsd:string ; rdfs:label "CVE ID"@en .
 cve:description a owl:DatatypeProperty ; rdfs:domain cve:CVE ; rdfs:range xsd:string ; rdfs:label "Description"@en .

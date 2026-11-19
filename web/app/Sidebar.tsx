@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "./layout.module.css";
+import { readHistoryRaw } from "./chat/storage";
 
 interface HistoryItem {
   id: string;
@@ -16,7 +17,7 @@ export default function Sidebar() {
   useEffect(() => {
     const loadHistory = () => {
       try {
-        const historyStr = localStorage.getItem("cskg_chat_history");
+        const historyStr = readHistoryRaw();
         if (historyStr) {
           const historyObj = JSON.parse(historyStr);
           const historyArray = Object.keys(historyObj).map((key) => ({
@@ -48,7 +49,7 @@ export default function Sidebar() {
       {!isCollapsed && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div className={styles.sidebarTitle} style={{ justifyContent: 'space-between' }}>
-            <span>Chat CSKG</span>
+            <span>SOCrates</span>
             <button
               onClick={() => setIsCollapsed(true)}
               className={styles.collapseButton}

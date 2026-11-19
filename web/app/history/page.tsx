@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import { HistoryItem, Message } from "./types";
 import { HistoryList } from "./list";
+import { readHistoryRaw, writeHistoryRaw } from "../chat/storage";
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     try {
-      const historyStr = localStorage.getItem("cskg_chat_history");
+      const historyStr = readHistoryRaw();
       if (historyStr) {
         const historyObj = JSON.parse(historyStr) as Record<string, Omit<HistoryItem, "id">>;
         const items = Object.entries(historyObj)
@@ -29,11 +30,11 @@ export default function HistoryPage() {
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const historyStr = localStorage.getItem("cskg_chat_history");
+    const historyStr = readHistoryRaw();
     if (historyStr) {
       const historyObj = JSON.parse(historyStr);
       delete historyObj[id];
-      localStorage.setItem("cskg_chat_history", JSON.stringify(historyObj));
+      writeHistoryRaw(JSON.stringify(historyObj));
       window.dispatchEvent(new Event("historyUpdated"));
       setHistoryItems((prev) => prev.filter((item) => item.id !== id));
     }

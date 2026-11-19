@@ -9,7 +9,7 @@ PREFIX icsa:   <http://w3id.org/sepses/vocab/ref/icsa#>
 PREFIX epss:   <http://w3id.org/sepses/vocab/ref/epss#>
 PREFIX d3fend: <http://d3fend.mitre.org/ontologies/d3fend.owl#>
 PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX cskg:   <http://w3id.org/sepses/ontology/cskg#>`;
+PREFIX socrates: <http://w3id.org/sepses/ontology/socrates#>`;
 
 export const PRESETS: PresetQuery[] = [
   {
@@ -50,27 +50,27 @@ export const PRESETS: PresetQuery[] = [
   {
     id: "reasoning_weakness",
     name: "8. Inferred Inverse: cwe:isWeaknessOf",
-    query: `DEFINE input:inference "cskg"\n${STANDARD_PREFIXES}\n\nSELECT ?cwe ?cve WHERE { ?cwe cwe:isWeaknessOf ?cve . } LIMIT 25`,
+    query: `DEFINE input:inference "socrates"\n${STANDARD_PREFIXES}\n\nSELECT ?cwe ?cve WHERE { ?cwe cwe:isWeaknessOf ?cve . } LIMIT 25`,
   },
   {
     id: "reasoning_attck_cve",
     name: "9. Inferred Inverse: attck:relatedCVE",
-    query: `DEFINE input:inference "cskg"\n${STANDARD_PREFIXES}\n\nSELECT ?technique ?cve WHERE { ?technique attck:relatedCVE ?cve . } LIMIT 25`,
+    query: `DEFINE input:inference "socrates"\n${STANDARD_PREFIXES}\n\nSELECT ?technique ?cve WHERE { ?technique attck:relatedCVE ?cve . } LIMIT 25`,
   },
   {
     id: "reasoning_d3fend_cve",
     name: "10. Inferred Inverse: d3fend:mitigatesCVE",
-    query: `DEFINE input:inference "cskg"\n${STANDARD_PREFIXES}\n\nSELECT ?defTech ?cve WHERE { ?defTech d3fend:mitigatesCVE ?cve . } LIMIT 25`,
+    query: `DEFINE input:inference "socrates"\n${STANDARD_PREFIXES}\n\nSELECT ?defTech ?cve WHERE { ?defTech d3fend:mitigatesCVE ?cve . } LIMIT 25`,
   },
   {
     id: "reasoning_countered",
     name: "11. Inferred Inverse: attck:counteredBy",
-    query: `DEFINE input:inference "cskg"\n${STANDARD_PREFIXES}\n\nSELECT ?attackTechnique ?defensiveMeasure WHERE { ?attackTechnique attck:counteredBy ?defensiveMeasure . } LIMIT 25`,
+    query: `DEFINE input:inference "socrates"\n${STANDARD_PREFIXES}\n\nSELECT ?attackTechnique ?defensiveMeasure WHERE { ?attackTechnique attck:counteredBy ?defensiveMeasure . } LIMIT 25`,
   },
   {
     id: "reasoning_taxonomy",
-    name: "12. Inferred SubClassOf: cskg:SecurityEntity",
-    query: `DEFINE input:inference "cskg"\n${STANDARD_PREFIXES}\n\nSELECT ?entity ?type WHERE { ?entity a cskg:SecurityEntity ; a ?type . } LIMIT 25`,
+    name: "12. Inferred SubClassOf: socrates:SecurityEntity",
+    query: `DEFINE input:inference "socrates"\n${STANDARD_PREFIXES}\n\nSELECT ?entity ?type WHERE { ?entity a socrates:SecurityEntity ; a ?type . } LIMIT 25`,
   },
   {
     id: "graph_stats",

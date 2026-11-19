@@ -10,10 +10,10 @@
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 
-<http://w3id.org/sepses/ontology/cskg/relations>
+<http://w3id.org/sepses/ontology/socrates/relations>
     a owl:Ontology ;
-    rdfs:label "CSKG Object Properties and Semantic Inverses"@en ;
-    owl:imports <http://w3id.org/sepses/ontology/cskg/classes> .
+    rdfs:label "SOCrates Object Properties and Semantic Inverses"@en ;
+    owl:imports <http://w3id.org/sepses/ontology/socrates/classes> .
 
 cve:hasCWE a owl:ObjectProperty ; rdfs:domain cve:CVE ; rdfs:range cwe:CWE ; owl:inverseOf cwe:isWeaknessOf ; rdfs:label "has CWE"@en .
 cwe:isWeaknessOf a owl:ObjectProperty ; rdfs:domain cwe:CWE ; rdfs:range cve:CVE ; owl:inverseOf cve:hasCWE ; rdfs:label "is weakness of"@en .

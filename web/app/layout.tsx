@@ -4,7 +4,7 @@ import styles from "./layout.module.css";
 import Sidebar from "./Sidebar";
 
 export const metadata: Metadata = {
-  title: "Chat CSKG",
+  title: "SOCrates",
   description: "Cybersecurity Knowledge Graph Chatbot",
 };
 

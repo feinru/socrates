@@ -1,7 +1,7 @@
 services:
   virtuoso:
     image: openlink/virtuoso-opensource-7:latest
-    container_name: cskg-sparql
+    container_name: socrates-sparql
     environment:
       DBA_PASSWORD: dba
       SPARQL_UPDATE: 'true'
@@ -15,10 +15,10 @@ services:
 
   pipeline:
     build: .
-    container_name: cskg-pipeline
+    container_name: socrates-pipeline
     environment:
       - VIRTUOSO_HOST=virtuoso
-      - VIRTUOSO_CONTAINER=cskg-sparql
+      - VIRTUOSO_CONTAINER=socrates-sparql
     env_file:
       - .env
     volumes:
@@ -29,7 +29,7 @@ services:
 
   retriever:
     build: .
-    container_name: cskg-retriever
+    container_name: socrates-retriever
     command: python -m modules.vector.service
     ports:
       - '8000:8000'
@@ -50,7 +50,7 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-    container_name: cskg-web
+    container_name: socrates-web
     ports:
       - '3000:3000'
     env_file:

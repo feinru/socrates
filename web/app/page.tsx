@@ -12,7 +12,7 @@ import { loadSessionMessages, saveSessionMessages } from "./chat/session";
 const INITIAL_MESSAGE: Message = {
   id: "init",
   role: "agent",
-  content: "Hello, I am your Cybersecurity Knowledge Graph Assistant. Ask me anything about CVEs, attack patterns, defenses, or vulnerabilities.",
+  content: "Hello, I am SOCrates, your cybersecurity knowledge graph assistant. Ask me anything about CVEs, attack patterns, defenses, or vulnerabilities.",
 };
 
 function ChatApp() {

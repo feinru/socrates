@@ -80,7 +80,7 @@ export async function runSparql(
 
 export const executeSparqlQuery = tool(async ({ query }) => runSparql(query), {
   name: "execute_sparql_query",
-  description: "Execute a SPARQL query against the CSKG knowledge graph and return results as JSON.",
+  description: "Execute a SPARQL query against the SOCrates knowledge graph and return results as JSON.",
   schema: z.object({
     query: z.string().describe("The exact SPARQL query to execute"),
   }),

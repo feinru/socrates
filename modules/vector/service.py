@@ -20,7 +20,7 @@ SPARQL_ENDPOINT = os.getenv("SPARQL_ENDPOINT", "http://localhost:8890/sparql")
 SPARQL_PROXY_TIMEOUT = float(os.getenv("SPARQL_PROXY_TIMEOUT", "120"))
 
 
-class UnifiedCSKGHandler(BaseHTTPRequestHandler):
+class UnifiedSocratesHandler(BaseHTTPRequestHandler):
     def _send_json(self, status: int, payload: Dict[str, Any]):
         try:
             response_bytes = json.dumps(payload).encode("utf-8")
@@ -93,7 +93,7 @@ class UnifiedCSKGHandler(BaseHTTPRequestHandler):
 
             self._send_json(200, {
                 "status": "ok",
-                "service": "cskg-unified-server",
+                "service": "socrates-unified-server",
                 "components": {
                     "vector": "ready",
                     "sparql": "connected" if sparql_ok else "unreachable",
@@ -186,8 +186,8 @@ class UnifiedCSKGHandler(BaseHTTPRequestHandler):
 
 
 def run_service():
-    server = ThreadingHTTPServer((HOST, PORT), UnifiedCSKGHandler)
-    print(f"[OK] Unified CSKG Server (SPARQL + Hybrid + Vector) running on http://{HOST}:{PORT}")
+    server = ThreadingHTTPServer((HOST, PORT), UnifiedSocratesHandler)
+    print(f"[OK] Unified SOCrates Server (SPARQL + Hybrid + Vector) running on http://{HOST}:{PORT}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

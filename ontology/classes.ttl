@@ -1,4 +1,4 @@
-@prefix cskg:    <http://w3id.org/sepses/ontology/cskg#> .
+@prefix socrates:  <http://w3id.org/sepses/ontology/socrates#> .
 @prefix cve:     <http://w3id.org/sepses/vocab/ref/cve#> .
 @prefix cwe:     <http://w3id.org/sepses/vocab/ref/cwe#> .
 @prefix capec:   <http://w3id.org/sepses/vocab/ref/capec#> .
@@ -11,73 +11,73 @@
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 
-<http://w3id.org/sepses/ontology/cskg/classes>
+<http://w3id.org/sepses/ontology/socrates/classes>
     a owl:Ontology ;
-    rdfs:label "CSKG Domain Entity Classes"@en ;
-    owl:imports <http://w3id.org/sepses/ontology/cskg/core> .
+    rdfs:label "SOCrates Domain Entity Classes"@en ;
+    owl:imports <http://w3id.org/sepses/ontology/socrates/core> .
 
 cve:CVE
     a owl:Class ;
-    rdfs:subClassOf cskg:Vulnerability ;
+    rdfs:subClassOf socrates:Vulnerability ;
     rdfs:label "Common Vulnerabilities and Exposures (CVE)"@en ;
     rdfs:comment "A publicly known information security vulnerability."@en .
 
 cwe:CWE
     a owl:Class ;
-    rdfs:subClassOf cskg:Weakness ;
+    rdfs:subClassOf socrates:Weakness ;
     rdfs:label "Common Weakness Enumeration (CWE)"@en ;
     rdfs:comment "A categorized community-developed list of common software weaknesses."@en .
 
 capec:CAPEC
     a owl:Class ;
-    rdfs:subClassOf cskg:AttackPattern ;
+    rdfs:subClassOf socrates:AttackPattern ;
     rdfs:label "Common Attack Pattern Enumeration and Classification (CAPEC)"@en ;
     rdfs:comment "A comprehensive dictionary of known patterns of cyber attacks."@en .
 
 attck:AttackPattern
     a owl:Class ;
-    rdfs:subClassOf cskg:AttackPattern ;
+    rdfs:subClassOf socrates:AttackPattern ;
     rdfs:label "MITRE ATT&CK Technique"@en ;
     rdfs:comment "Adversary tactics, techniques, and procedures (TTPs)."@en .
 
 attck:Mitigation
     a owl:Class ;
-    rdfs:subClassOf cskg:Countermeasure ;
+    rdfs:subClassOf socrates:Countermeasure ;
     rdfs:label "MITRE ATT&CK Mitigation"@en ;
     rdfs:comment "Official ATT&CK mitigation (M####): a security concept or class of technologies that prevents a technique from succeeding."@en .
 
 attck:Software
     a owl:Class ;
-    rdfs:subClassOf cskg:SecurityEntity ;
+    rdfs:subClassOf socrates:SecurityEntity ;
     rdfs:label "MITRE ATT&CK Software"@en ;
     rdfs:comment "Malware or tool (S####) observed using ATT&CK techniques."@en .
 
 attck:Group
     a owl:Class ;
-    rdfs:subClassOf cskg:SecurityEntity ;
+    rdfs:subClassOf socrates:SecurityEntity ;
     rdfs:label "MITRE ATT&CK Group"@en ;
     rdfs:comment "Threat actor group (G####) observed using ATT&CK techniques."@en .
 
 cpe:CPE
     a owl:Class ;
-    rdfs:subClassOf cskg:AffectedAsset ;
+    rdfs:subClassOf socrates:AffectedAsset ;
     rdfs:label "Common Platform Enumeration (CPE)"@en ;
     rdfs:comment "A structured naming scheme for IT systems and software."@en .
 
 icsa:ICSA
     a owl:Class ;
-    rdfs:subClassOf cskg:ThreatAdvisory ;
+    rdfs:subClassOf socrates:ThreatAdvisory ;
     rdfs:label "CISA Known Exploited Vulnerability (KEV) Advisory"@en ;
     rdfs:comment "CISA advisories for vulnerabilities known to be exploited."@en .
 
 epss:EPSS
     a owl:Class ;
-    rdfs:subClassOf cskg:RiskMetric ;
+    rdfs:subClassOf socrates:RiskMetric ;
     rdfs:label "Exploit Prediction Scoring System (EPSS)"@en ;
     rdfs:comment "Empirical probability score that a vulnerability will be exploited."@en .
 
 d3fend:DefensiveTechnique
     a owl:Class ;
-    rdfs:subClassOf cskg:Countermeasure ;
+    rdfs:subClassOf socrates:Countermeasure ;
     rdfs:label "MITRE D3FEND Defensive Technique"@en ;
     rdfs:comment "A defensive cybersecurity capability or countermeasure."@en .

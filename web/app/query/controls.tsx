@@ -22,9 +22,9 @@ export function QueryControls({ selectedPreset, onSelectPreset, query, setQuery 
         <button
           type="button"
           className={styles.actionButton}
-          onClick={() => !query.includes("DEFINE input:inference") && setQuery(`DEFINE input:inference "cskg"\n${query}`)}
+          onClick={() => !query.includes("DEFINE input:inference") && setQuery(`DEFINE input:inference "socrates"\n${query}`)}
         >
-          [+ Inference "cskg"]
+          [+ Inference "socrates"]
         </button>
         <button
           type="button"

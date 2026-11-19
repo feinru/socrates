@@ -60,7 +60,7 @@ export default function QueryPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>SPARQL Workbench</h1>
-        <p className={styles.subtitle}>Directly query the Cybersecurity Knowledge Graph (CSKG)</p>
+        <p className={styles.subtitle}>Directly query the SOCrates cybersecurity knowledge graph</p>
       </div>
 
       <QueryControls selectedPreset={selectedPreset} onSelectPreset={handleSelectPreset} query={query} setQuery={setQuery} />

@@ -126,7 +126,7 @@ def verify_endpoint() -> int | None:
 
 
 def load_ontology_and_rules() -> bool:
-    print("\n[SPARQL] Loading CSKG Core Ontology & Semantic Rules...")
+    print("\n[SPARQL] Loading SOCrates Core Ontology & Semantic Rules...")
     onto_dir = TOLOAD_DIR / "ontology"
     source_dir = onto_dir if (onto_dir.exists() and (onto_dir / "ontology.ttl").exists()) else ONTOLOGY_DIR
     target_names = ["core.ttl", "classes.ttl", "relations.ttl", "properties.ttl", "ontology.ttl"]
@@ -135,18 +135,24 @@ def load_ontology_and_rules() -> bool:
         print("[SPARQL] No ontology files found to load.")
         return False
 
-    run_isql(f"SPARQL CLEAR GRAPH <{ONTOLOGY_GRAPH}>;")
+    code, out = run_isql(f"SPARQL CLEAR GRAPH <{ONTOLOGY_GRAPH}>;")
+    if code != 0 or "*** Error" in out:
+        print(f"[Ontology] Could not reach Virtuoso ({CONTAINER_NAME}): {out.strip()[:160]}")
+        return False
+    loaded = 0
     for f in onto_files:
         rel_path = f"ontology/{f.name}" if (TOLOAD_DIR / "ontology" / f.name).exists() else f.name
         cmd = f"SPARQL LOAD <file:///opt/virtuoso-opensource/vsp/toload/{rel_path}> INTO GRAPH <{ONTOLOGY_GRAPH}>;"
         code, out = run_isql(cmd)
         if code != 0 or "*** Error" in out:
             print(f"[Ontology] Error loading {f.name}: {out[:120]}")
+        else:
+            loaded += 1
 
     run_isql(f"DB.DBA.RDF_GRAPH_USER_PERMS_SET ('{ONTOLOGY_GRAPH}', 'nobody', 1);")
     run_isql(f"rdfs_rule_set ('{INFERENCE_RULE_SET}', '{ONTOLOGY_GRAPH}'); checkpoint; commit work;")
-    print(f"[Ontology] Loaded {len(onto_files)} ontology modules into <{ONTOLOGY_GRAPH}> with rule set '{INFERENCE_RULE_SET}'.")
-    return True
+    print(f"[Ontology] Loaded {loaded}/{len(onto_files)} ontology modules into <{ONTOLOGY_GRAPH}> with rule set '{INFERENCE_RULE_SET}'.")
+    return loaded == len(onto_files)
 
 
 def run_loader():

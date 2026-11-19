@@ -5,7 +5,7 @@ from .retriever import search_entities
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Query CSKG ChromaDB vector index")
+    parser = argparse.ArgumentParser(description="Query the SOCrates ChromaDB vector index")
     parser.add_argument("--query", "-q", type=str, required=True, help="Search query or description")
     parser.add_argument(
         "--types",

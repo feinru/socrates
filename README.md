@@ -1,6 +1,8 @@
-# Cybersecurity Knowledge Graph (CSKG) Pipeline
+# SOCrates
 
-This project implements an ETL pipeline to fetch, parse, link, validate, and query cybersecurity data (CVE, CPE, CWE, CAPEC, ATT&CK techniques, mitigations, software and groups, D3FEND, EPSS, CISA KEV) using the SEPSES ontology. On top of it sit a hybrid (vector + knowledge graph) retriever and a natural-language chat agent (Groq) that answers security questions with grounded, cited results.
+**A cybersecurity knowledge graph and grounded AI assistant for SOC analysts.**
+
+SOCrates implements an ETL pipeline to fetch, parse, link, validate, and query cybersecurity data (CVE, CPE, CWE, CAPEC, ATT&CK techniques, mitigations, software and groups, D3FEND, EPSS, CISA KEV) using the SEPSES ontology. On top of it sit a hybrid (vector + knowledge graph) retriever and a natural-language chat agent (Groq) that answers security questions with grounded, cited results.
 
 
 ## Installation
@@ -34,7 +36,7 @@ Configuration is primarily handled through environment variables and `.env` file
 | `NVD_MAX_DEMO` | Cap CVE/CPE (and EPSS) fetches to N records for quick demos (`0` = everything). Ignored by incremental syncs. | Optional | `0` |
 | `NVD_DELTA_DAYS` | With an existing cache but no sync record, only fetch records modified in the last N days. | Optional | `0` |
 | `VIRTUOSO_HOST` | Host address of the Virtuoso SPARQL endpoint. | Optional | `localhost` (or `virtuoso` in Compose) |
-| `VIRTUOSO_CONTAINER`| Name of the running Virtuoso Docker container. | Optional | `cskg-sparql` |
+| `VIRTUOSO_CONTAINER`| Name of the running Virtuoso Docker container. | Optional | `socrates-sparql` |
 | `SPARQL_ENDPOINT` | SPARQL endpoint used by the web app, retriever and evaluation. | Optional | `http://localhost:8890/sparql` |
 | `VECTOR_ENDPOINT` | Hybrid retrieval endpoint used by the chat agent. | Optional | `http://localhost:8000/hybrid` |
 | `SPARQL_PROXY_TIMEOUT` | Seconds the retriever waits for Virtuoso when proxying `/sparql`. | Optional | `120` |
@@ -50,7 +52,7 @@ cp .env.example .env
 
 ## Quick Start with Docker
 
-The easiest way to build, run, and query the entire CSKG pipeline and web UI is using Docker Compose.
+The easiest way to build, run, and query the entire SOCrates pipeline and web UI is using Docker Compose.
 
 ### 1. Build and Start Services
 This starts Virtuoso, the pipeline container, the retriever service and the Next.js web application. The pipeline container automatically runs the sequential fetch-parse-link-validate-load-index cycle (`./run.sh all`):
@@ -191,7 +193,13 @@ The UI shows these steps live, then collapses them into a "Thinking process" pan
 
 ## Showcase
 
-The project features a Web UI built with Next.js, allowing SOC analysts to query the Knowledge Graph using natural language.
+The project features a Web UI built with Next.js, allowing SOC analysts to query the SOCrates knowledge graph in natural language.
+
+<p align="center">
+  <img src="media/socrates-promo.gif" width="99%" alt="SOCrates promo: separate security catalogs link into one knowledge graph, then a question is answered with grounded results" />
+</p>
+
+<p align="center"><a href="media/socrates-promo.mp4">Watch the full-quality video (MP4)</a></p>
 
 <p align="center">
   <img src="img/newchat.png" width="49%" alt="New Chat Screen" />

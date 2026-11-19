@@ -191,10 +191,10 @@ LINKING_RULES = [
 
 VIRTUOSO_HOST = os.environ.get("VIRTUOSO_HOST", "localhost")
 VIRTUOSO_SPARQL = f"http://{VIRTUOSO_HOST}:8890/sparql"
-VIRTUOSO_CONTAINER = os.environ.get("VIRTUOSO_CONTAINER", "cskg-sparql")
+VIRTUOSO_CONTAINER = os.environ.get("VIRTUOSO_CONTAINER", "socrates-sparql")
 GRAPH_BASE = "http://w3id.org/sepses/graph/"
 ONTOLOGY_GRAPH = "http://w3id.org/sepses/graph/ontology"
-INFERENCE_RULE_SET = "cskg"
+INFERENCE_RULE_SET = "socrates"
 
 
 class _FetcherRegistry(dict):

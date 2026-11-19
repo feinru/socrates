@@ -95,31 +95,31 @@ def main():
         ),
         (
             "SELECT (COUNT(*) AS ?total) WHERE {\n               GRAPH <http://w3id.org/sepses/graph/ontology> { ?s ?p ?o }\n             }",
-            "CSKG Core Ontology Graph",
+            "SOCrates Core Ontology Graph",
         ),
         (
-            'DEFINE input:inference "cskg"\n             SELECT ?cwe ?cve WHERE {\n               ?cwe <http://w3id.org/sepses/vocab/ref/cwe#isWeaknessOf> ?cve .\n             } LIMIT 3',
+            'DEFINE input:inference "socrates"\n             SELECT ?cwe ?cve WHERE {\n               ?cwe <http://w3id.org/sepses/vocab/ref/cwe#isWeaknessOf> ?cve .\n             } LIMIT 3',
             "Semantic Reasoning: Inferred inverseOf (cwe:isWeaknessOf <- cve:hasCWE)",
         ),
         (
-            'DEFINE input:inference "cskg"\n             SELECT ?tech ?cve WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#relatedCVE> ?cve .\n             } LIMIT 3',
+            'DEFINE input:inference "socrates"\n             SELECT ?tech ?cve WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#relatedCVE> ?cve .\n             } LIMIT 3',
             "Semantic Reasoning: Inferred inverseOf (attck:relatedCVE <- cve:relatedAttackPattern)",
         ),
         (
-            'DEFINE input:inference "cskg"\n             SELECT ?defTech ?cve WHERE {\n               ?defTech <http://d3fend.mitre.org/ontologies/d3fend.owl#mitigatesCVE> ?cve .\n             } LIMIT 3',
+            'DEFINE input:inference "socrates"\n             SELECT ?defTech ?cve WHERE {\n               ?defTech <http://d3fend.mitre.org/ontologies/d3fend.owl#mitigatesCVE> ?cve .\n             } LIMIT 3',
             "Semantic Reasoning: Inferred inverseOf (d3fend:mitigatesCVE <- cve:hasCountermeasure)",
         ),
         (
-            'DEFINE input:inference "cskg"\n             SELECT ?tech ?m WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#mitigatedBy> ?m .\n             } LIMIT 3',
+            'DEFINE input:inference "socrates"\n             SELECT ?tech ?m WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#mitigatedBy> ?m .\n             } LIMIT 3',
             "Semantic Reasoning: Inferred inverseOf (attck:mitigatedBy <- attck:mitigates)",
         ),
         (
-            'DEFINE input:inference "cskg"\n             SELECT ?tech ?defTech WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#counteredBy> ?defTech .\n             } LIMIT 3',
+            'DEFINE input:inference "socrates"\n             SELECT ?tech ?defTech WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#counteredBy> ?defTech .\n             } LIMIT 3',
             "Semantic Reasoning: Inferred inverseOf (attck:counteredBy <- d3fend:counters)",
         ),
         (
-            'DEFINE input:inference "cskg"\n             SELECT ?entity WHERE {\n               ?entity a <http://w3id.org/sepses/ontology/cskg#SecurityEntity> .\n             } LIMIT 3',
-            "Semantic Reasoning: SubClassOf taxonomy (cskg:SecurityEntity)",
+            'DEFINE input:inference "socrates"\n             SELECT ?entity WHERE {\n               ?entity a <http://w3id.org/sepses/ontology/socrates#SecurityEntity> .\n             } LIMIT 3',
+            "Semantic Reasoning: SubClassOf taxonomy (socrates:SecurityEntity)",
         ),
     ]
     passed = 0
