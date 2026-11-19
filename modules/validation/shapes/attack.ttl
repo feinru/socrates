@@ -28,3 +28,63 @@ shape:AttackPatternShape
         sh:severity sh:Violation ;
         sh:message "Official MITRE ATT&CK technique identifier format required (e.g. T1059 or T1059.001)" ;
     ] .
+
+shape:MitigationShape
+    a sh:NodeShape ;
+    sh:targetClass attck:Mitigation ;
+    sh:property [
+        sh:path attck:mitreId ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^M\\d{4}$" ;
+        sh:severity sh:Violation ;
+        sh:message "ATT&CK mitigation needs exactly one MITRE ID (M####)" ;
+    ] ;
+    sh:property [
+        sh:path attck:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "ATT&CK mitigation name is mandatory" ;
+    ] .
+
+shape:SoftwareShape
+    a sh:NodeShape ;
+    sh:targetClass attck:Software ;
+    sh:property [
+        sh:path attck:mitreId ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^S\\d{4}$" ;
+        sh:severity sh:Violation ;
+        sh:message "ATT&CK software needs exactly one MITRE ID (S####)" ;
+    ] ;
+    sh:property [
+        sh:path attck:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "ATT&CK software name is mandatory" ;
+    ] .
+
+shape:GroupShape
+    a sh:NodeShape ;
+    sh:targetClass attck:Group ;
+    sh:property [
+        sh:path attck:mitreId ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^G\\d{4}$" ;
+        sh:severity sh:Violation ;
+        sh:message "ATT&CK group needs exactly one MITRE ID (G####)" ;
+    ] ;
+    sh:property [
+        sh:path attck:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "ATT&CK group name is mandatory" ;
+    ] .

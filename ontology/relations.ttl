@@ -36,3 +36,14 @@ cve:addressedInICSA a owl:ObjectProperty ; rdfs:domain cve:CVE ; rdfs:range icsa
 d3fend:counters a owl:ObjectProperty ; rdfs:domain d3fend:DefensiveTechnique ; rdfs:range attck:AttackPattern ; owl:inverseOf attck:counteredBy ; rdfs:label "counters"@en .
 attck:counteredBy a owl:ObjectProperty ; rdfs:domain attck:AttackPattern ; rdfs:range d3fend:DefensiveTechnique ; owl:inverseOf d3fend:counters ; rdfs:label "countered by"@en .
 
+cve:relatedAttackPattern a owl:ObjectProperty ; rdfs:domain cve:CVE ; rdfs:range attck:AttackPattern ; owl:inverseOf attck:relatedCVE ; rdfs:label "related attack pattern"@en .
+attck:relatedCVE a owl:ObjectProperty ; rdfs:domain attck:AttackPattern ; rdfs:range cve:CVE ; owl:inverseOf cve:relatedAttackPattern ; rdfs:label "related CVE"@en .
+
+cve:hasCountermeasure a owl:ObjectProperty ; rdfs:domain cve:CVE ; rdfs:range d3fend:DefensiveTechnique ; owl:inverseOf d3fend:mitigatesCVE ; rdfs:label "has countermeasure"@en .
+d3fend:mitigatesCVE a owl:ObjectProperty ; rdfs:domain d3fend:DefensiveTechnique ; rdfs:range cve:CVE ; owl:inverseOf cve:hasCountermeasure ; rdfs:label "mitigates CVE"@en .
+
+attck:mitigates a owl:ObjectProperty ; rdfs:domain attck:Mitigation ; rdfs:range attck:AttackPattern ; owl:inverseOf attck:mitigatedBy ; rdfs:label "mitigates"@en .
+attck:mitigatedBy a owl:ObjectProperty ; rdfs:domain attck:AttackPattern ; rdfs:range attck:Mitigation ; owl:inverseOf attck:mitigates ; rdfs:label "mitigated by"@en .
+attck:uses a owl:ObjectProperty ; rdfs:range attck:AttackPattern ; owl:inverseOf attck:usedBy ; rdfs:label "uses"@en ; rdfs:comment "A Software or Group observed using a technique."@en .
+attck:usedBy a owl:ObjectProperty ; rdfs:domain attck:AttackPattern ; owl:inverseOf attck:uses ; rdfs:label "used by"@en .
+attck:enterpriseTwin a owl:ObjectProperty ; rdfs:domain attck:AttackPattern ; rdfs:range attck:AttackPattern ; rdfs:label "enterprise twin"@en ; rdfs:comment "Links a Mobile or ICS technique to the Enterprise ATT&CK technique with the identical name. A naming-based link, not an official MITRE relationship."@en .

@@ -2,26 +2,27 @@ import subprocess
 import sys
 from pathlib import Path
 
-import requests
+if __name__ == "__main__" and __package__ is None:
+    _root = Path(__file__).resolve().parent.parent.parent
+    if str(_root) not in sys.path:
+        sys.path.insert(0, str(_root))
 
-parent_dir = Path(__file__).resolve().parent.parent
-if str(parent_dir) not in sys.path:
-    sys.path.insert(0, str(parent_dir))
+import requests
 
 from modules.config import (
     GRAPH_BASE,
     INFERENCE_RULE_SET,
     ONTOLOGY_DIR,
     ONTOLOGY_GRAPH,
+    SPARQL_DATA_DIR as TOLOAD_DIR,
+    VIRTUOSO_CONTAINER as CONTAINER_NAME,
     VIRTUOSO_HOST,
     VIRTUOSO_SPARQL,
 )
-from modules.config import (
-    SPARQL_DATA_DIR as TOLOAD_DIR,
-)
-from modules.config import (
-    VIRTUOSO_CONTAINER as CONTAINER_NAME,
-)
+
+
+# Non-data artefacts that may linger in the load directory from older runs.
+SKIP_GRAPHS = {"nvd_sync"}
 
 
 def run_isql(command: str) -> tuple[bool, str]:
@@ -125,7 +126,7 @@ def verify_endpoint() -> int | None:
 
 
 def load_ontology_and_rules() -> bool:
-    print(f"\n[SPARQL] Loading CSKG Core Ontology & Semantic Rules...")
+    print("\n[SPARQL] Loading CSKG Core Ontology & Semantic Rules...")
     onto_dir = TOLOAD_DIR / "ontology"
     source_dir = onto_dir if (onto_dir.exists() and (onto_dir / "ontology.ttl").exists()) else ONTOLOGY_DIR
     target_names = ["core.ttl", "classes.ttl", "relations.ttl", "properties.ttl", "ontology.ttl"]
@@ -148,14 +149,8 @@ def load_ontology_and_rules() -> bool:
     return True
 
 
-def main():
-    ttl_files = sorted(
-        [
-            f
-            for f in TOLOAD_DIR.glob("*.ttl")
-            if not f.name.endswith("_simulated.ttl") and "_to_" not in f.name
-        ]
-    )
+def run_loader():
+    ttl_files = sorted(f for f in TOLOAD_DIR.glob("*.ttl") if f.stem not in SKIP_GRAPHS)
     if not ttl_files:
         print("[SPARQL] ERROR: No .ttl files found in data directory")
         return
@@ -183,5 +178,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-
+    run_loader()

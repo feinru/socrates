@@ -51,3 +51,7 @@ icsa:vulnerabilityName a owl:DatatypeProperty ; rdfs:domain icsa:ICSA ; rdfs:ran
 epss:cveID a owl:DatatypeProperty ; rdfs:domain epss:EPSS ; rdfs:range xsd:string ; rdfs:label "CVE ID"@en .
 epss:epssScore a owl:DatatypeProperty ; rdfs:domain epss:EPSS ; rdfs:range xsd:decimal ; rdfs:label "EPSS Score"@en .
 epss:epssPercentile a owl:DatatypeProperty ; rdfs:domain epss:EPSS ; rdfs:range xsd:decimal ; rdfs:label "EPSS Percentile"@en .
+
+attck:mitreId a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:label "MITRE ID"@en ; rdfs:comment "ATT&CK identifier of a mitigation (M####), software (S####) or group (G####)."@en .
+attck:softwareType a owl:DatatypeProperty ; rdfs:domain attck:Software ; rdfs:range xsd:string ; rdfs:label "Software type"@en ; rdfs:comment "malware or tool"@en .
+attck:alias a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:label "Alias"@en .

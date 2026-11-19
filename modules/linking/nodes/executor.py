@@ -1,3 +1,4 @@
+import collections
 import re
 import traceback
 import xml.etree.ElementTree as ET
@@ -6,12 +7,12 @@ from pathlib import Path
 import ijson
 import orjson
 from rdflib import Graph, Namespace, URIRef
-from rdflib.namespace import RDF
 
 from modules.config import (
     CACHE_DIR,
     LINKING_OUTPUT_DIR,
     NAMESPACES,
+    SPARQL_DATA_DIR,
 )
 from modules.config import (
     RESOURCE_BASE_MAP as RESOURCE_BASE,
@@ -22,12 +23,16 @@ from ..state import LinkingState
 NS_CVE = Namespace(NAMESPACES["cve"])
 NS_CWE = Namespace(NAMESPACES["cwe"])
 NS_CAPEC = Namespace(NAMESPACES["capec"])
-NS_CPE = Namespace(NAMESPACES["cpe"])
-NS_CVSS = Namespace(NAMESPACES["cvss"])
-NS_ATTCK = Namespace(NAMESPACES["attck"])
-NS_ICSA = Namespace(NAMESPACES["icsa"])
-NS_EPSS = Namespace(NAMESPACES["epss"])
 NS_D3FEND = Namespace(NAMESPACES["d3fend"])
+NS_ATTCK_VOCAB = Namespace(NAMESPACES["attck"])
+
+
+# link_type -> (STIX relationship_type, source object types) taken from the ATT&CK bundles.
+ATTCK_RELATIONSHIP_LINKS = {
+    "mitigation2attck": ("mitigates", ("course-of-action",)),
+    "software2attck": ("uses", ("malware", "tool")),
+    "group2attck": ("uses", ("intrusion-set",)),
+}
 
 
 def executor(state: LinkingState) -> LinkingState:
@@ -65,30 +70,46 @@ def executor(state: LinkingState) -> LinkingState:
         out_file = out_dir / f"{link_type}.ttl"
         is_streamed = False
 
-        if link_type in ("cve2cwe", "cve_to_cwe"):
+        if link_type == "cve2cwe":
             triples_count = _link_cve_to_cwe_stream(
                 out_file, subject_files, predicate_uri
             )
             is_streamed = True
-        elif link_type in ("cve2cpe", "cve_to_cpe"):
+        elif link_type == "cve2cpe":
             triples_count = _link_cve_to_cpe_stream(
                 out_file, subject_files, predicate_uri
             )
             is_streamed = True
-        elif link_type in ("cve2epss", "cve_to_epss"):
+        elif link_type == "cve2epss":
             target_files = task.get("object_files") or subject_files
             triples_count = _link_cve_to_epss_stream(
                 out_file, target_files, predicate_uri
             )
             is_streamed = True
-        elif link_type in ("cwe2capec", "cwe_to_capec"):
+        elif link_type == "cwe2capec":
             triples_count = _link_cwe_to_capec(g, subject_files, predicate_uri)
-        elif link_type in ("capec2attck", "capec_to_attck"):
+        elif link_type == "capec2attck":
             triples_count = _link_capec_to_attck(g, subject_files, predicate_uri)
-        elif link_type in ("icsa2cve", "icsa_to_cve"):
+        elif link_type == "icsa2cve":
             triples_count = _link_icsa_to_cve(g, subject_files, predicate_uri)
-        elif link_type in ("d3fend2attck", "d3fend_to_attck"):
+        elif link_type == "d3fend2attck":
             triples_count = _link_d3fend_to_attck(g, subject_files, predicate_uri)
+        elif link_type in ATTCK_RELATIONSHIP_LINKS:
+            triples_count = _link_attck_relationships(
+                out_file, subject_files, predicate_uri, *ATTCK_RELATIONSHIP_LINKS[link_type]
+            )
+            is_streamed = True
+        elif link_type == "twin2attck":
+            triples_count = _link_enterprise_twins(out_file, subject_files, predicate_uri)
+            is_streamed = True
+        elif link_type == "cve2attck":
+            triples_count = _link_cve_to_attck_stream(
+                out_file, subject_files, predicate_uri
+            )
+            is_streamed = True
+        elif link_type == "cve2d3fend":
+            triples_count = _link_cve_to_d3fend_stream(out_file, predicate_uri)
+            is_streamed = True
         else:
             print(f"[{link_type}] WARNING: Unknown linking type")
 
@@ -98,7 +119,7 @@ def executor(state: LinkingState) -> LinkingState:
         result["triples_count"] = triples_count
         result["output_file"] = str(out_file)
         print(f"[{link_type}] Success: {triples_count:,} triples written -> {out_file}")
-    except (OSError, ValueError, RuntimeError, KeyError) as e:
+    except (OSError, ValueError, RuntimeError, KeyError, SyntaxError) as e:  # SyntaxError: rdflib BadSyntax
         error_msg = f"{e!s}\n{traceback.format_exc()}"
         print(f"[{link_type}] Error: {error_msg}")
         result["error"] = str(e)
@@ -281,8 +302,6 @@ def _link_cwe_to_capec(g: Graph, subject_files: list[str], predicate: URIRef) ->
         try:
             if file_path.endswith(".xml"):
                 count += _link_cwe_to_capec_xml(g, file_path, predicate)
-            elif file_path.endswith(".json"):
-                count += _link_cwe_to_capec_json(g, file_path, predicate)
         except (OSError, ValueError, RuntimeError, KeyError, ET.ParseError) as e:
             print(f"[Linking] Failed to process {file_path}: {e}")
             continue
@@ -313,44 +332,12 @@ def _link_cwe_to_capec_xml(g: Graph, file_path: str, predicate: URIRef) -> int:
     return count
 
 
-def _link_cwe_to_capec_json(g: Graph, file_path: str, predicate: URIRef) -> int:
-    count = 0
-    data = _load_json_data(file_path)
-    weaknesses = []
-    if isinstance(data, dict):
-        weaknesses = data.get("Weaknesses", data.get("weaknesses", []))
-    elif isinstance(data, list):
-        weaknesses = data
-    for weakness in weaknesses:
-        cwe_id = weakness.get("ID") or weakness.get("id")
-        if not cwe_id:
-            attribs = weakness.get("attribs", {})
-            cwe_id = attribs.get("ID")
-        if not cwe_id:
-            continue
-        subject_uri = URIRef(RESOURCE_BASE["cwe"] + f"CWE-{cwe_id}")
-        related_patterns = weakness.get("Related_Attack_Patterns", [])
-        if isinstance(related_patterns, dict):
-            related_patterns = related_patterns.get("Related_Attack_Pattern", [])
-        if isinstance(related_patterns, dict):
-            related_patterns = [related_patterns]
-        for pattern in related_patterns:
-            capec_id = pattern.get("CAPEC_ID") or pattern.get("capec_id")
-            if capec_id:
-                object_uri = URIRef(RESOURCE_BASE["capec"] + f"CAPEC-{capec_id}")
-                g.add((subject_uri, predicate, object_uri))
-                count += 1
-    return count
-
-
 def _link_capec_to_attck(g: Graph, subject_files: list[str], predicate: URIRef) -> int:
     count = 0
     for file_path in subject_files:
         try:
             if file_path.endswith(".xml"):
                 count += _link_capec_to_attck_xml(g, file_path, predicate)
-            elif file_path.endswith(".json"):
-                count += _link_capec_to_attck_json(g, file_path, predicate)
         except (OSError, ValueError, RuntimeError, KeyError, ET.ParseError) as e:
             print(f"[Linking] Failed to process {file_path}: {e}")
             continue
@@ -387,40 +374,6 @@ def _link_capec_to_attck_xml(g: Graph, file_path: str, predicate: URIRef) -> int
     return count
 
 
-def _link_capec_to_attck_json(g: Graph, file_path: str, predicate: URIRef) -> int:
-    count = 0
-    data = _load_json_data(file_path)
-    patterns = []
-    if isinstance(data, dict):
-        patterns = data.get("Attack_Patterns", data.get("attack_patterns", []))
-    elif isinstance(data, list):
-        patterns = data
-    for pattern in patterns:
-        capec_id = pattern.get("ID") or pattern.get("id")
-        if not capec_id:
-            attribs = pattern.get("attribs", {})
-            capec_id = attribs.get("ID")
-        if not capec_id:
-            continue
-        subject_uri = URIRef(RESOURCE_BASE["capec"] + f"CAPEC-{capec_id}")
-        taxonomy_mappings = pattern.get("Taxonomy_Mappings", [])
-        if isinstance(taxonomy_mappings, dict):
-            taxonomy_mappings = taxonomy_mappings.get("Taxonomy_Mapping", [])
-        if isinstance(taxonomy_mappings, dict):
-            taxonomy_mappings = [taxonomy_mappings]
-        for mapping in taxonomy_mappings:
-            taxonomy_name = mapping.get("Taxonomy_Name", "")
-            if "ATTACK" in taxonomy_name.upper():
-                entry_id = mapping.get("Entry_ID", "")
-                if entry_id:
-                    if not entry_id.startswith("T"):
-                        entry_id = "T" + entry_id
-                    object_uri = URIRef(RESOURCE_BASE["attck"] + entry_id)
-                    g.add((subject_uri, predicate, object_uri))
-                    count += 1
-    return count
-
-
 def _link_icsa_to_cve(g: Graph, subject_files: list[str], predicate: URIRef) -> int:
     count = 0
     for file_path in subject_files:
@@ -444,34 +397,6 @@ def _link_icsa_to_cve(g: Graph, subject_files: list[str], predicate: URIRef) -> 
             icsa_id = f"{vendor}_{product}_{cve_id}".replace(" ", "_")
             subject_uri = URIRef(RESOURCE_BASE["icsa"] + icsa_id)
             object_uri = URIRef(RESOURCE_BASE["cve"] + cve_id)
-            g.add((subject_uri, predicate, object_uri))
-            count += 1
-    return count
-
-
-def _link_cve_to_epss(
-    g: Graph, subject_files: list[str], object_files: list[str], predicate: URIRef
-) -> int:
-    count = 0
-    target_files = object_files if object_files else subject_files
-    for file_path in target_files:
-        try:
-            data = _load_json_data(file_path)
-        except (OSError, ValueError, RuntimeError, KeyError) as e:
-            print(f"[Linking] Failed to read {file_path}: {e}")
-            continue
-        records = []
-        if isinstance(data, list):
-            records = data
-        elif isinstance(data, dict):
-            records = data.get("scores", [data])
-        for rec in records:
-            cve_id = rec.get("cve") or rec.get("cveID") or rec.get("id")
-            if not cve_id:
-                continue
-            cve_id = _sanitize_uri_component(cve_id)
-            subject_uri = URIRef(RESOURCE_BASE["cve"] + cve_id)
-            object_uri = URIRef(RESOURCE_BASE["epss"] + cve_id)
             g.add((subject_uri, predicate, object_uri))
             count += 1
     return count
@@ -504,4 +429,223 @@ def _link_d3fend_to_attck(g: Graph, subject_files: list[str], predicate: URIRef)
             count += 1
     except (OSError, ValueError, RuntimeError, KeyError) as e:
         print(f"[Linking] Failed to process {mappings_file}: {e}")
+    return count
+
+
+def _find_link_file(filename: str) -> Path | None:
+    """Prefer this run's linking output; fall back to the last loaded copy."""
+    for lookup_dir in (LINKING_OUTPUT_DIR, SPARQL_DATA_DIR):
+        candidate = lookup_dir / filename
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _load_link_pairs(filename: str, predicate: URIRef) -> dict[str, set[str]]:
+    """Parse a linking TTL file and return {subject local id: {object local id}}.
+
+    Uses a real Turtle parser: rdflib serializes multi-object statements across
+    several lines (``s p o1, o2 ;``), which line-based regexes silently miss.
+    """
+    pairs: dict[str, set[str]] = collections.defaultdict(set)
+    link_file = _find_link_file(filename)
+    if link_file is None:
+        print(f"[Linking] WARNING: {filename} not found; dependent links will be incomplete.")
+        return pairs
+    g = Graph()
+    g.parse(str(link_file), format="turtle")
+    for s, o in g.subject_objects(predicate):
+        pairs[_local_id(str(s))].add(_local_id(str(o)))
+    return pairs
+
+
+def _local_id(uri: str) -> str:
+    return re.split(r"[/#]", uri)[-1]
+
+
+def _build_cwe_to_attck_map() -> dict[str, set[str]]:
+    cwe_to_capec = _load_link_pairs("cwe2capec.ttl", NS_CWE.hasCAPEC)
+    capec_to_attck = _load_link_pairs("capec2attck.ttl", NS_CAPEC.hasRelatedAttackPattern)
+
+    cwe_to_attck: dict[str, set[str]] = collections.defaultdict(set)
+    for cwe, capecs in cwe_to_capec.items():
+        for capec in capecs:
+            cwe_to_attck[cwe].update(capec_to_attck.get(capec, ()))
+    return cwe_to_attck
+
+
+def _link_cve_to_attck_stream(
+    out_file: Path, subject_files: list[str], predicate: URIRef
+) -> int:
+    count = 0
+    cwe_to_attck = _build_cwe_to_attck_map()
+    attck_regex = re.compile(
+        r"attack\.mitre\.org/techniques/(T\d{4})(?:[/.](\d{3}))?", re.IGNORECASE
+    )
+
+    with open(out_file, "w", encoding="utf-8", buffering=2 * 1024 * 1024) as out_f:
+        out_f.write("@prefix cve: <http://w3id.org/sepses/vocab/ref/cve#> .\n")
+        out_f.write("@prefix attck: <http://w3id.org/sepses/resource/attack/> .\n\n")
+
+        for file_path in subject_files:
+            for vuln in _iter_json_data(file_path):
+                cve_data = vuln.get("cve", {})
+                cve_id = cve_data.get("id")
+                if not cve_id:
+                    continue
+                cve_id = _sanitize_uri_component(cve_id)
+                subject_uri = RESOURCE_BASE["cve"] + cve_id
+
+                matched_attck: set[str] = set()
+
+                for ref in cve_data.get("references", []):
+                    url = ref.get("url", "")
+                    m = attck_regex.search(url)
+                    if m:
+                        tech = m.group(1).upper()
+                        matched_attck.add(f"{tech}.{m.group(2)}" if m.group(2) else tech)
+
+                for weakness in cve_data.get("weaknesses", []):
+                    for desc in weakness.get("description", []):
+                        cwe_val = desc.get("value", "")
+                        if cwe_val in cwe_to_attck:
+                            matched_attck.update(cwe_to_attck[cwe_val])
+
+                if matched_attck:
+                    lines = [
+                        f"<{predicate}> <{RESOURCE_BASE['attck'] + attck_id}>"
+                        for attck_id in sorted(matched_attck)
+                    ]
+                    count += len(matched_attck)
+                    out_f.write(f"<{subject_uri}> " + " ;\n    ".join(lines) + " .\n")
+    return count
+
+
+def _build_attck_to_d3fend_map() -> dict[str, set[str]]:
+    d3fend_to_attck = _load_link_pairs("d3fend2attck.ttl", NS_D3FEND.counters)
+    attck_to_d3fend: dict[str, set[str]] = collections.defaultdict(set)
+    for def_id, techs in d3fend_to_attck.items():
+        for tech in techs:
+            attck_to_d3fend[tech].add(NAMESPACES["d3fend"] + def_id)
+    return attck_to_d3fend
+
+
+def _link_cve_to_d3fend_stream(out_file: Path, predicate: URIRef) -> int:
+    count = 0
+    attck_to_d3fend = _build_attck_to_d3fend_map()
+    if not attck_to_d3fend:
+        print("[Linking] No ATT&CK-to-D3FEND mappings found.")
+        return 0
+
+    cve_to_attck = _load_link_pairs("cve2attck.ttl", NS_CVE.relatedAttackPattern)
+    if not cve_to_attck:
+        print("[Linking] cve2attck.ttl not found or empty; cannot materialize D3FEND links.")
+        return 0
+
+    with open(out_file, "w", encoding="utf-8", buffering=2 * 1024 * 1024) as out_f:
+        out_f.write("@prefix cve: <http://w3id.org/sepses/vocab/ref/cve#> .\n")
+        out_f.write("@prefix d3fend: <http://d3fend.mitre.org/ontologies/d3fend.owl#> .\n\n")
+
+        for cve_id in sorted(cve_to_attck):
+            def_uris: set[str] = set()
+            for tech_id in cve_to_attck[cve_id]:
+                def_uris.update(attck_to_d3fend.get(tech_id, ()))
+            if not def_uris:
+                continue
+            subject_uri = RESOURCE_BASE["cve"] + _sanitize_uri_component(cve_id)
+            objects = ",\n        ".join(f"<{d_uri}>" for d_uri in sorted(def_uris))
+            out_f.write(f"<{subject_uri}> <{predicate}> {objects} .\n")
+            count += len(def_uris)
+    return count
+
+
+def _link_attck_relationships(
+    out_file: Path,
+    subject_files: list[str],
+    predicate: URIRef,
+    relationship_type: str,
+    source_types: tuple[str, ...],
+) -> int:
+    """Write ATT&CK STIX relationships as triples between MITRE IDs, e.g.
+    <attack/M1012> attck:mitigates <attack/T1461>. Ignores revoked/deprecated objects."""
+    objects: dict[str, dict] = {}
+    relationships: list[dict] = []
+    for file_path in subject_files:
+        for obj in _iter_json_data(file_path):
+            if obj.get("revoked") or obj.get("x_mitre_deprecated"):
+                continue
+            if obj.get("type") == "relationship":
+                if obj.get("relationship_type") == relationship_type:
+                    relationships.append(obj)
+            elif "id" in obj:
+                objects[obj["id"]] = obj
+
+    def mitre_id(obj: dict | None) -> str | None:
+        for ref in (obj or {}).get("external_references", []):
+            if ref.get("source_name") == "mitre-attack" and ref.get("external_id"):
+                return _sanitize_uri_component(ref["external_id"])
+        return None
+
+    pairs: dict[str, set[str]] = collections.defaultdict(set)
+    for rel in relationships:
+        src, dst = objects.get(rel.get("source_ref")), objects.get(rel.get("target_ref"))
+        if not src or not dst or src.get("type") not in source_types or dst.get("type") != "attack-pattern":
+            continue
+        s_id, t_id = mitre_id(src), mitre_id(dst)
+        if s_id and t_id:
+            pairs[s_id].add(t_id)
+
+    count = 0
+    with open(out_file, "w", encoding="utf-8", buffering=2 * 1024 * 1024) as out_f:
+        out_f.write("@prefix attck: <http://w3id.org/sepses/vocab/ref/attack#> .\n\n")
+        for s_id in sorted(pairs):
+            objects_str = ",\n        ".join(f"<{RESOURCE_BASE['attck']}{t}>" for t in sorted(pairs[s_id]))
+            out_f.write(f"<{RESOURCE_BASE['attck']}{s_id}> <{predicate}> {objects_str} .\n")
+            count += len(pairs[s_id])
+    return count
+
+
+def _link_enterprise_twins(out_file: Path, subject_files: list[str], predicate: URIRef) -> int:
+    """Link each Mobile/ICS technique to the Enterprise technique with the identical
+    name (case-insensitive), e.g. mobile T1417.001 Keylogging -> T1056.001.
+
+    Lets Mobile/ICS techniques reach D3FEND countermeasures, which are mapped to
+    Enterprise techniques only. Exact names only: inheriting a parent's sub-technique
+    links was rejected because it pulls in unrelated defences (e.g. network-flood
+    controls for mobile passcode-reset denial of service).
+    """
+    def techniques(file_path: str) -> list[tuple[str, str]]:
+        found = []
+        for obj in _iter_json_data(file_path):
+            if obj.get("type") != "attack-pattern" or obj.get("revoked") or obj.get("x_mitre_deprecated"):
+                continue
+            tid = next(
+                (r.get("external_id") for r in obj.get("external_references", []) if r.get("source_name") == "mitre-attack"),
+                None,
+            )
+            if tid and obj.get("name"):
+                found.append((_sanitize_uri_component(tid), obj["name"].strip().lower()))
+        return found
+
+    enterprise_files = [f for f in subject_files if "enterprise" in Path(f).name]
+    other_files = [f for f in subject_files if f not in enterprise_files]
+    by_name: dict[str, set[str]] = collections.defaultdict(set)
+    for f in enterprise_files:
+        for tid, name in techniques(f):
+            by_name[name].add(tid)
+
+    pairs: dict[str, set[str]] = collections.defaultdict(set)
+    for f in other_files:
+        for tid, name in techniques(f):
+            for twin in by_name.get(name, ()):
+                if twin != tid:
+                    pairs[tid].add(twin)
+
+    count = 0
+    with open(out_file, "w", encoding="utf-8", buffering=2 * 1024 * 1024) as out_f:
+        out_f.write("@prefix attck: <http://w3id.org/sepses/vocab/ref/attack#> .\n\n")
+        for tid in sorted(pairs):
+            objects_str = ",\n        ".join(f"<{RESOURCE_BASE['attck']}{t}>" for t in sorted(pairs[tid]))
+            out_f.write(f"<{RESOURCE_BASE['attck']}{tid}> <{predicate}> {objects_str} .\n")
+            count += len(pairs[tid])
     return count

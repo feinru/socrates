@@ -16,15 +16,19 @@ def reviewer(state: ValidationState) -> ValidationState:
     successful_parses = sum(1 for r in results if r["status"] == "success")
     failed_parses = sum(1 for r in results if r["status"] == "failed")
     total_triples = sum(r["total_triples"] for r in results)
+    validated_triples = sum(r.get("validated_triples", 0) for r in results)
     total_subjects = sum(r["validated_subjects"] for r in results)
     total_critical = sum(r["critical_errors_count"] for r in results)
     total_errors = sum(r["errors_count"] for r in results)
     total_warnings = sum(r["warnings_count"] for r in results)
 
+    # Errors come from the validated (possibly sampled) triples, so use that as
+    # the denominator. A file that failed to parse counts as fully invalid.
     quality_score = 100.0
-    if total_triples > 0:
+    denominator = validated_triples + total_critical * 10
+    if denominator > 0:
         quality_score = max(
-            0.0, (1.0 - (total_errors + total_critical * 10) / total_triples) * 100
+            0.0, (1.0 - (total_errors + total_critical * 10) / denominator) * 100
         )
     quality_tier = "EXCELLENT (A)"
     if quality_score < 95.0:
@@ -49,6 +53,7 @@ def reviewer(state: ValidationState) -> ValidationState:
             "successful_parses": successful_parses,
             "failed_parses": failed_parses,
             "total_triples": total_triples,
+            "validated_triples": validated_triples,
             "total_subjects": total_subjects,
             "critical_errors": total_critical,
             "errors": total_errors,

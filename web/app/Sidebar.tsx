@@ -78,7 +78,7 @@ export default function Sidebar() {
           </nav>
 
           <div className={styles.sidebarLicense} style={{ marginTop: 'auto' }}>
-            <p>Fein - GNU AGPLv3 © {new Date().getFullYear()}</p>
+            <p>Fernru - GNU AGPLv3 © {new Date().getFullYear()}</p>
           </div>
         </div>
       )}

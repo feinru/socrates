@@ -40,6 +40,24 @@ attck:AttackPattern
     rdfs:label "MITRE ATT&CK Technique"@en ;
     rdfs:comment "Adversary tactics, techniques, and procedures (TTPs)."@en .
 
+attck:Mitigation
+    a owl:Class ;
+    rdfs:subClassOf cskg:Countermeasure ;
+    rdfs:label "MITRE ATT&CK Mitigation"@en ;
+    rdfs:comment "Official ATT&CK mitigation (M####): a security concept or class of technologies that prevents a technique from succeeding."@en .
+
+attck:Software
+    a owl:Class ;
+    rdfs:subClassOf cskg:SecurityEntity ;
+    rdfs:label "MITRE ATT&CK Software"@en ;
+    rdfs:comment "Malware or tool (S####) observed using ATT&CK techniques."@en .
+
+attck:Group
+    a owl:Class ;
+    rdfs:subClassOf cskg:SecurityEntity ;
+    rdfs:label "MITRE ATT&CK Group"@en ;
+    rdfs:comment "Threat actor group (G####) observed using ATT&CK techniques."@en .
+
 cpe:CPE
     a owl:Class ;
     rdfs:subClassOf cskg:AffectedAsset ;

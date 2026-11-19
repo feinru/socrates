@@ -1,0 +1,15 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix attck: <http://w3id.org/sepses/vocab/ref/attack#> .
+@prefix shape: <http://w3id.org/sepses/shape/> .
+
+shape:MitigationMitigatesShape
+    a sh:NodeShape ;
+    sh:targetSubjectsOf attck:mitigates ;
+    sh:property [
+        sh:path attck:mitigates ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:pattern "^http://w3id\\.org/sepses/resource/attack/T[0-9]{4}(\\.[0-9]{3})?$" ;
+        sh:severity sh:Violation ;
+        sh:message "attck:mitigates target must be a SEPSES ATT&CK technique IRI" ;
+    ] .

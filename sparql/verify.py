@@ -14,11 +14,15 @@ from modules.config import VIRTUOSO_SPARQL as SPARQL_ENDPOINT
 def query(sparql: str, description: str) -> bool:
     print(f"\n[{description}]")
     print(f"Query: {sparql[:80]}...")
-    resp = requests.get(
-        SPARQL_ENDPOINT,
-        params={"query": sparql, "format": "application/sparql-results+json"},
-        timeout=30,
-    )
+    try:
+        resp = requests.get(
+            SPARQL_ENDPOINT,
+            params={"query": sparql, "format": "application/sparql-results+json"},
+            timeout=60,
+        )
+    except requests.RequestException as e:
+        print(f"[FAIL] Request error: {e}")
+        return False
     if resp.status_code != 200:
         print(f"[FAIL] Error status: {resp.status_code}")
         return False
@@ -70,12 +74,44 @@ def main():
             "Sample D3FEND countermeasures to ATT&CK techniques",
         ),
         (
+            "SELECT ?cve ?attck WHERE {\n               GRAPH <http://w3id.org/sepses/graph/cve2attck> {\n                 ?cve <http://w3id.org/sepses/vocab/ref/cve#relatedAttackPattern> ?attck .\n               }\n             } LIMIT 3",
+            "Sample CVE to ATT&CK direct links",
+        ),
+        (
+            "SELECT ?cve ?defTech WHERE {\n               GRAPH <http://w3id.org/sepses/graph/cve2d3fend> {\n                 ?cve <http://w3id.org/sepses/vocab/ref/cve#hasCountermeasure> ?defTech .\n               }\n             } LIMIT 3",
+            "Sample CVE to D3FEND direct countermeasures",
+        ),
+        (
+            "SELECT ?cve ?desc WHERE {\n               GRAPH <http://w3id.org/sepses/graph/cve> {\n                 ?cve <http://w3id.org/sepses/vocab/ref/cve#description> ?desc .\n                 FILTER(bif:contains(?desc, \"'sql' AND 'injection'\"))\n               }\n             } LIMIT 3",
+            "Full-Text Search (bif:contains)",
+        ),
+        (
+            "SELECT ?m ?t WHERE {\n               GRAPH <http://w3id.org/sepses/graph/mitigation2attck> {\n                 ?m <http://w3id.org/sepses/vocab/ref/attack#mitigates> ?t .\n               }\n             } LIMIT 3",
+            "Sample ATT&CK mitigations to techniques",
+        ),
+        (
+            "SELECT ?s ?t WHERE {\n               GRAPH <http://w3id.org/sepses/graph/software2attck> {\n                 ?s <http://w3id.org/sepses/vocab/ref/attack#uses> ?t .\n               }\n             } LIMIT 3",
+            "Sample malware/tools observed using techniques",
+        ),
+        (
             "SELECT (COUNT(*) AS ?total) WHERE {\n               GRAPH <http://w3id.org/sepses/graph/ontology> { ?s ?p ?o }\n             }",
             "CSKG Core Ontology Graph",
         ),
         (
             'DEFINE input:inference "cskg"\n             SELECT ?cwe ?cve WHERE {\n               ?cwe <http://w3id.org/sepses/vocab/ref/cwe#isWeaknessOf> ?cve .\n             } LIMIT 3',
             "Semantic Reasoning: Inferred inverseOf (cwe:isWeaknessOf <- cve:hasCWE)",
+        ),
+        (
+            'DEFINE input:inference "cskg"\n             SELECT ?tech ?cve WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#relatedCVE> ?cve .\n             } LIMIT 3',
+            "Semantic Reasoning: Inferred inverseOf (attck:relatedCVE <- cve:relatedAttackPattern)",
+        ),
+        (
+            'DEFINE input:inference "cskg"\n             SELECT ?defTech ?cve WHERE {\n               ?defTech <http://d3fend.mitre.org/ontologies/d3fend.owl#mitigatesCVE> ?cve .\n             } LIMIT 3',
+            "Semantic Reasoning: Inferred inverseOf (d3fend:mitigatesCVE <- cve:hasCountermeasure)",
+        ),
+        (
+            'DEFINE input:inference "cskg"\n             SELECT ?tech ?m WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#mitigatedBy> ?m .\n             } LIMIT 3',
+            "Semantic Reasoning: Inferred inverseOf (attck:mitigatedBy <- attck:mitigates)",
         ),
         (
             'DEFINE input:inference "cskg"\n             SELECT ?tech ?defTech WHERE {\n               ?tech <http://w3id.org/sepses/vocab/ref/attack#counteredBy> ?defTech .\n             } LIMIT 3',

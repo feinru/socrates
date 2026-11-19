@@ -1,8 +1,6 @@
-export interface Message {
-  id: string;
-  role: "user" | "agent";
-  content: string;
-}
+import type { Message } from "../chat/types";
+
+export type { Message };
 
 export interface HistoryItem {
   id: string;

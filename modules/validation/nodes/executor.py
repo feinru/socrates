@@ -47,6 +47,7 @@ def executor(state: ValidationState) -> ValidationState:
         "status": "failed",
         "total_triples": 0,
         "validated_subjects": 0,
+        "validated_triples": 0,
         "critical_errors_count": 0,
         "errors_count": 0,
         "warnings_count": 0,
@@ -66,7 +67,9 @@ def executor(state: ValidationState) -> ValidationState:
                 for idx, line in enumerate(f):
                     if idx < 25000:
                         sample_lines.append(line)
-                    if ";" in line or line.strip().endswith("."):
+                    # Each triple's line ends in ';' (more predicates), ',' (more
+                    # objects) or '.' (end of statement). Literals are single-line.
+                    if line.rstrip().endswith((";", ",", ".")) and not line.startswith("@"):
                         total_triples_est += 1
 
             while sample_lines and not sample_lines[-1].strip().endswith("."):
@@ -90,8 +93,11 @@ def executor(state: ValidationState) -> ValidationState:
                 f"[{link_type}] Parsed: {total_triples:,} triples ({len(target_subjects):,} subjects)"
             )
 
+        # Error rates must be computed over what was actually validated, not the
+        # full-file estimate, or sampled files look far cleaner than they are.
+        result["validated_triples"] = len(file_graph)
         shapes_graph = get_shacl_shapes_graph()
-        conforms, results_graph, results_text = validate(
+        conforms, results_graph, _ = validate(
             data_graph=file_graph,
             shacl_graph=shapes_graph,
             inference="none",
@@ -131,7 +137,7 @@ def executor(state: ValidationState) -> ValidationState:
             f"[{link_type}] SHACL Conforms: {conforms} | {result['errors_count']} Violations, {result['warnings_count']} Warnings"
         )
 
-    except (OSError, ValueError, RuntimeError, KeyError) as e:
+    except (OSError, ValueError, RuntimeError, KeyError, SyntaxError) as e:  # rdflib BadSyntax is a SyntaxError
         error_msg = f"{e!s}\n{traceback.format_exc()}"
         print(f"[{link_type}] Error: Critical validation failure on {file_name}: {e}")
         result["status"] = "failed"

@@ -15,12 +15,7 @@ def planner(state: ValidationState) -> ValidationState:
                 found_files.append((file, "parser"))
     if linking_output_dir.exists():
         for file in sorted(linking_output_dir.iterdir()):
-            if (
-                file.is_file()
-                and file.suffix.lower() == ".ttl"
-                and "_to_" not in file.name
-                and not file.name.endswith("_simulated.ttl")
-            ):
+            if file.is_file() and file.suffix.lower() == ".ttl":
                 found_files.append((file, "linking"))
     if found_files:
         for file_path, origin in found_files:

@@ -92,16 +92,6 @@ class BaseFetcher(ABC):
             return 0
         return count
 
-    def load_from_cache(self) -> list[dict]:
-        file_path = CACHE_DIR / f"{self.source_name}.json"
-        if not file_path.exists():
-            return []
-        file_size_mb = file_path.stat().st_size / (1024 * 1024)
-        if file_size_mb > 10.0:
-            return []
-        with open(file_path, "rb") as f:
-            return orjson.loads(f.read())
-
     def run(self) -> dict:
         if not self.needs_update():
             print(f"[{self.source_name}] Already up-to-date, using cache.")
@@ -131,7 +121,8 @@ class BaseFetcher(ABC):
                 "file_path": file_path,
                 "error": None,
             }
-        except (OSError, RuntimeError, ValueError, KeyError) as e:
+        except Exception as e:  # isolate one source's failure from the others
+            print(f"[{self.source_name}] Fetch failed: {type(e).__name__}: {e}")
             return {
                 "source": self.source_name,
                 "status": "failed",

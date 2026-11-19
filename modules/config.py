@@ -12,14 +12,20 @@ PARSER_OUTPUT_DIR = BASE_DIR / "modules" / "parser" / "output"
 LINKING_OUTPUT_DIR = BASE_DIR / "modules" / "linking" / "output"
 VALIDATION_REPORTS_DIR = BASE_DIR / "modules" / "validation" / "output" / "reports"
 SHACL_SHAPES_DIR = BASE_DIR / "modules" / "validation" / "shapes"
-SHACL_SHAPES_FILE = SHACL_SHAPES_DIR / "cskg_shapes.ttl"
 ONTOLOGY_DIR = BASE_DIR / "ontology"
 SPARQL_DATA_DIR = BASE_DIR / "sparql" / "data"
+VECTOR_DIR = BASE_DIR / "modules" / "vector"
+CHROMA_DB_DIR = VECTOR_DIR / "db"
+CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
+COLLECTION_SECURITY_ENTITIES = "security_entities"
+EMBEDDING_BATCH_SIZE = 100
+DEFAULT_CVE_INDEX_LIMIT = 5000
 
 NVD_API_KEY = os.getenv("NVD_API_KEY")
-NVD_DELAY = 0.6 if NVD_API_KEY else 6
 NVD_PAGE_SIZE = 2000
 NVD_MAX_DEMO = int(os.getenv("NVD_MAX_DEMO", "0")) or None
+NVD_DELTA_DAYS = int(os.getenv("NVD_DELTA_DAYS", "0"))
+NVD_SYNC_FILE = CACHE_DIR / "nvd_sync.json"
 
 NVD_CVE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 NVD_CPE_URL = "https://services.nvd.nist.gov/rest/json/cpes/2.0"
@@ -46,19 +52,6 @@ ATTCK_VERSION_URLS = {
     "attck_enterprise": "https://api.github.com/repos/mitre-attack/attack-stix-data/commits?path=enterprise-attack/enterprise-attack.json&per_page=1",
     "attck_ics": "https://api.github.com/repos/mitre-attack/attack-stix-data/commits?path=ics-attack/ics-attack.json&per_page=1",
     "attck_mobile": "https://api.github.com/repos/mitre-attack/attack-stix-data/commits?path=mobile-attack/mobile-attack.json&per_page=1",
-}
-
-SOURCE_DESCRIPTIONS = {
-    "cve": "Known public vulnerabilities and exposures",
-    "cpe": "Common Platform Enumeration standard names",
-    "cwe": "Common Weakness Enumeration catalog",
-    "capec": "Common Attack Pattern Enumeration and Classification",
-    "attck_enterprise": "MITRE ATT&CK tactics and techniques (Enterprise)",
-    "attck_ics": "MITRE ATT&CK tactics and techniques (ICS/OT)",
-    "attck_mobile": "MITRE ATT&CK tactics and techniques (Mobile)",
-    "icsa": "CISA Known Exploited Vulnerabilities advisories",
-    "epss": "FIRST.org Exploit Prediction Scoring System (EPSS)",
-    "d3fend": "MITRE D3FEND defensive cybersecurity ontology and countermeasure matrix",
 }
 
 VOCAB_NS = {
@@ -152,181 +145,49 @@ LINKING_RULES = [
         "predicate": "d3fend:counters",
         "description": "MITRE D3FEND defensive countermeasure linked to ATT&CK technique",
     },
+    {
+        "link_type": "mitigation2attck",
+        "subject_src": "attck",
+        "object_src": "attck",
+        "predicate": "attck:mitigates",
+        "description": "Official MITRE ATT&CK mitigation (M####) for a technique",
+    },
+    {
+        "link_type": "software2attck",
+        "subject_src": "attck",
+        "object_src": "attck",
+        "predicate": "attck:uses",
+        "description": "Malware or tool (S####) observed using an ATT&CK technique",
+    },
+    {
+        "link_type": "group2attck",
+        "subject_src": "attck",
+        "object_src": "attck",
+        "predicate": "attck:uses",
+        "description": "Threat group (G####) observed using an ATT&CK technique",
+    },
+    {
+        "link_type": "twin2attck",
+        "subject_src": "attck",
+        "object_src": "attck",
+        "predicate": "attck:enterpriseTwin",
+        "description": "Mobile/ICS technique linked to the Enterprise technique with the identical name",
+    },
+    {
+        "link_type": "cve2attck",
+        "subject_src": "cve",
+        "object_src": "attck",
+        "predicate": "cve:relatedAttackPattern",
+        "description": "CVE vulnerability directly linked to MITRE ATT&CK technique",
+    },
+    {
+        "link_type": "cve2d3fend",
+        "subject_src": "cve",
+        "object_src": "d3fend",
+        "predicate": "cve:hasCountermeasure",
+        "description": "CVE vulnerability linked to D3FEND defensive countermeasures",
+    },
 ]
-
-VALIDATION_RULES = {
-    "http://w3id.org/sepses/vocab/ref/cve#CVE": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/cve#id": {
-                "type": "literal",
-                "regex": "^CVE-\\d{4}-\\d{4,}$",
-                "severity": "ERROR",
-                "description": "CVE identifier must match standard NVD format (CVE-YYYY-NNNN+)",
-            },
-            "http://w3id.org/sepses/vocab/ref/cve#description": {
-                "type": "literal",
-                "severity": "WARNING",
-                "description": "Detailed description of the cybersecurity vulnerability",
-            },
-        },
-        "links": {
-            "http://w3id.org/sepses/vocab/ref/cve#hasCWE": {
-                "target_class": "http://w3id.org/sepses/vocab/ref/cwe#CWE",
-                "severity": "WARNING",
-                "description": "Relation linking CVE vulnerability to associated CWE weakness",
-            },
-            "http://w3id.org/sepses/vocab/ref/cve#hasCPE": {
-                "target_class": "http://w3id.org/sepses/vocab/ref/cpe#CPE",
-                "severity": "WARNING",
-                "description": "Relation linking CVE vulnerability to affected CPE product",
-            },
-        },
-    },
-    "http://w3id.org/sepses/vocab/ref/cwe#CWE": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/cwe#id": {
-                "type": "literal",
-                "regex": "^CWE-\\d+$",
-                "severity": "ERROR",
-                "description": "CWE identifier must match standard MITRE format (CWE-ID)",
-            },
-            "http://w3id.org/sepses/vocab/ref/cwe#name": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Official weakness name",
-            },
-            "http://w3id.org/sepses/vocab/ref/cwe#description": {
-                "type": "literal",
-                "severity": "WARNING",
-                "description": "Technical description of the weakness",
-            },
-        },
-        "links": {
-            "http://w3id.org/sepses/vocab/ref/cwe#hasCAPEC": {
-                "target_class": "http://w3id.org/sepses/vocab/ref/capec#CAPEC",
-                "severity": "WARNING",
-                "description": "Relation linking CWE weakness to related CAPEC attack pattern",
-            }
-        },
-    },
-    "http://w3id.org/sepses/vocab/ref/capec#CAPEC": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/capec#id": {
-                "type": "literal",
-                "regex": "^CAPEC-\\d+$",
-                "severity": "ERROR",
-                "description": "CAPEC identifier must match standard MITRE format (CAPEC-ID)",
-            },
-            "http://w3id.org/sepses/vocab/ref/capec#name": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Official name of the attack pattern",
-            },
-            "http://w3id.org/sepses/vocab/ref/capec#description": {
-                "type": "literal",
-                "severity": "WARNING",
-                "description": "Technical description of the attack pattern",
-            },
-        },
-        "links": {
-            "http://w3id.org/sepses/vocab/ref/capec#hasRelatedAttackPattern": {
-                "target_class": "http://w3id.org/sepses/vocab/ref/attack#AttackPattern",
-                "severity": "WARNING",
-                "description": "Relation linking CAPEC attack pattern to related MITRE ATT&CK technique",
-            }
-        },
-    },
-    "http://w3id.org/sepses/vocab/ref/cpe#CPE": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/cpe#id": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Unique CPE Name Identifier",
-            },
-            "http://w3id.org/sepses/vocab/ref/cpe#cpe23Uri": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Formal CPE v2.3 URI string",
-            },
-        }
-    },
-    "http://w3id.org/sepses/vocab/ref/icsa#ICSA": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/icsa#cveID": {
-                "type": "literal",
-                "regex": "^CVE-\\d{4}-\\d{4,}$",
-                "severity": "ERROR",
-                "description": "Referenced CVE ID in ICSA advisory",
-            },
-            "http://w3id.org/sepses/vocab/ref/icsa#vendorProject": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Vendor or project name",
-            },
-            "http://w3id.org/sepses/vocab/ref/icsa#product": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Affected product name",
-            },
-        },
-        "links": {
-            "http://w3id.org/sepses/vocab/ref/icsa#hasCVE": {
-                "target_class": "http://w3id.org/sepses/vocab/ref/cve#CVE",
-                "severity": "WARNING",
-                "description": "Relation from ICSA advisory to CVE vulnerability entity",
-            }
-        },
-    },
-    "http://w3id.org/sepses/vocab/ref/attack#AttackPattern": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/attack#id": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Technical STIX identifier of the attack pattern",
-            },
-            "http://w3id.org/sepses/vocab/ref/attack#name": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Name of the ATT&CK technique",
-            },
-            "http://w3id.org/sepses/vocab/ref/attack#techniqueId": {
-                "type": "literal",
-                "regex": "^T\\d{4}(?:\\.\\d{3})?$",
-                "severity": "ERROR",
-                "description": "Official MITRE ATT&CK technique identifier (e.g. T1059)",
-            },
-        }
-    },
-    "http://w3id.org/sepses/vocab/ref/epss#EPSS": {
-        "mandatory_properties": {
-            "http://w3id.org/sepses/vocab/ref/epss#cveID": {
-                "type": "literal",
-                "regex": "^CVE-\\d{4}-\\d{4,}$",
-                "severity": "ERROR",
-                "description": "Referenced CVE ID in EPSS prediction",
-            },
-            "http://w3id.org/sepses/vocab/ref/epss#epssScore": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Exploit Prediction Scoring System probability [0-1]",
-            },
-            "http://w3id.org/sepses/vocab/ref/epss#epssPercentile": {
-                "type": "literal",
-                "severity": "WARNING",
-                "description": "EPSS percentile rank across all CVEs",
-            },
-        }
-    },
-    "http://d3fend.mitre.org/ontologies/d3fend.owl#DefensiveTechnique": {
-        "mandatory_properties": {
-            "http://www.w3.org/2000/01/rdf-schema#label": {
-                "type": "literal",
-                "severity": "ERROR",
-                "description": "Official name of the D3FEND defensive technique",
-            },
-        }
-    },
-}
 
 VIRTUOSO_HOST = os.environ.get("VIRTUOSO_HOST", "localhost")
 VIRTUOSO_SPARQL = f"http://{VIRTUOSO_HOST}:8890/sparql"
@@ -353,16 +214,16 @@ class _FetcherRegistry(dict):
 
             self.update(
                 {
-                    "cwe": CWEFetcher,
-                    "capec": CAPECFetcher,
+                    "cwe": lambda: CWEFetcher(),
+                    "capec": lambda: CAPECFetcher(),
                     "attck_enterprise": lambda: ATTCKFetcher("enterprise"),
                     "attck_ics": lambda: ATTCKFetcher("ics"),
                     "attck_mobile": lambda: ATTCKFetcher("mobile"),
-                    "icsa": ICSAFetcher,
-                    "epss": EPSSFetcher,
-                    "d3fend": D3FENDFetcher,
-                    "cve": CVEFetcher,
-                    "cpe": CPEFetcher,
+                    "icsa": lambda: ICSAFetcher(),
+                    "epss": lambda: EPSSFetcher(),
+                    "d3fend": lambda: D3FENDFetcher(),
+                    "cve": lambda: CVEFetcher(),
+                    "cpe": lambda: CPEFetcher(),
                 }
             )
 

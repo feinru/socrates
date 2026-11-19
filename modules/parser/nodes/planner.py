@@ -3,7 +3,7 @@ from pathlib import Path
 
 import orjson
 
-from modules.config import CACHE_DIR
+from modules.config import CACHE_DIR, NVD_SYNC_FILE
 
 from ..state import ParserState
 
@@ -20,6 +20,7 @@ def planner(state: ParserState) -> ParserState:
             file_path.is_file()
             and file_path.suffix.lower() == ".json"
             and not file_path.name.endswith("_mappings.json")
+            and file_path.name != NVD_SYNC_FILE.name  # fetcher bookkeeping, not data
         ):
             source = file_path.stem.lower()
             actual_file = str(file_path)

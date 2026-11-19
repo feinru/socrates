@@ -27,6 +27,25 @@ services:
     depends_on:
       - virtuoso
 
+  retriever:
+    build: .
+    container_name: cskg-retriever
+    command: python -m modules.vector.service
+    ports:
+      - '8000:8000'
+    environment:
+      - SPARQL_ENDPOINT=http://virtuoso:8890/sparql
+      - PORT=8000
+      - HOST=0.0.0.0
+    volumes:
+      - ./modules/vector/db:/app/modules/vector/db
+      - .:/app
+      # Keep the 79 MB embedding model across container re-creation (re-download takes minutes).
+      - chroma_models:/root/.cache/chroma
+    depends_on:
+      - virtuoso
+    restart: unless-stopped
+
   web:
     build:
       context: ./web
@@ -37,7 +56,13 @@ services:
     env_file:
       - .env
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - SPARQL_ENDPOINT=http://virtuoso:8890/sparql
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=${GROQ_MODEL:-qwen/qwen3.8-27b}
+      - SPARQL_ENDPOINT=http://retriever:8000/sparql
+      - VECTOR_ENDPOINT=http://retriever:8000/hybrid
     depends_on:
       - virtuoso
+      - retriever
+
+volumes:
+  chroma_models:

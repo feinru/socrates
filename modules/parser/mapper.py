@@ -1,5 +1,14 @@
 import re
 
+ATTCK_KILL_CHAINS = {"mitre-attack", "mitre-ics-attack", "mitre-mobile-attack"}
+# STIX object types kept besides techniques, and their ontology class.
+ATTCK_OTHER_TYPES = {
+    "course-of-action": "Mitigation",
+    "malware": "Software",
+    "tool": "Software",
+    "intrusion-set": "Group",
+}
+
 
 def _sanitize_uri_component(value: str) -> str:
     if not value:
@@ -27,14 +36,20 @@ class OntologyMapper:
             if cve_data.get("lastModified"):
                 mapped["sepses:lastModified"] = cve_data.get("lastModified")
             metrics = cve_data.get("metrics", {})
+            # v4.0 comes before v2 so CVEs scored only with CVSS 4.0 still get a
+            # score; the version is visible in vectorString ("CVSS:4.0/...").
             cvss_list = (
                 metrics.get("cvssMetricV31")
                 or metrics.get("cvssMetricV30")
+                or metrics.get("cvssMetricV40")
                 or metrics.get("cvssMetricV2")
                 or []
             )
             if cvss_list and isinstance(cvss_list, list):
-                first_metric = cvss_list[0]
+                # Prefer NVD's own (Primary) assessment over a CNA's (Secondary).
+                first_metric = next(
+                    (m for m in cvss_list if m.get("type") == "Primary"), cvss_list[0]
+                )
                 cvss_data = first_metric.get("cvssData", {})
                 if "baseScore" in cvss_data:
                     mapped["sepses:baseScore"] = cvss_data["baseScore"]
@@ -97,6 +112,8 @@ class OntologyMapper:
             mapped["__uri_key__"] = icsa_id
         elif source_name.startswith("attck"):
             mapped["@type"] = "sepses:AttackPattern"
+            if raw_entity.get("type") in ATTCK_OTHER_TYPES:
+                return self._map_attck_other(raw_entity)
             if raw_entity.get("type") == "attack-pattern":
                 if raw_entity.get("revoked") or raw_entity.get("x_mitre_deprecated"):
                     return {}
@@ -113,7 +130,8 @@ class OntologyMapper:
                     tactics = [
                         p.get("phase_name")
                         for p in phases
-                        if p.get("kill_chain_name") == "mitre-attack"
+                        # Enterprise, ICS and Mobile each use their own kill chain name.
+                        if p.get("kill_chain_name") in ATTCK_KILL_CHAINS
                         and p.get("phase_name")
                     ]
                     if tactics:
@@ -136,4 +154,33 @@ class OntologyMapper:
         else:
             mapped["@type"] = "sepses:Unknown"
             mapped["raw_data"] = raw_entity
+        return {k: v for k, v in mapped.items() if v is not None}
+
+    @staticmethod
+    def _map_attck_other(raw_entity: dict) -> dict:
+        """ATT&CK mitigations, software and groups (M####, S####, G####)."""
+        if raw_entity.get("revoked") or raw_entity.get("x_mitre_deprecated"):
+            return {}
+        mitre_id = next(
+            (r.get("external_id") for r in raw_entity.get("external_references", [])
+             if r.get("source_name") == "mitre-attack"),
+            None,
+        )
+        if not mitre_id:
+            return {}
+        stix_type = raw_entity["type"]
+        mapped = {
+            "@type": f"sepses:{ATTCK_OTHER_TYPES[stix_type]}",
+            "sepses:id": raw_entity.get("id"),
+            "sepses:mitreId": mitre_id,
+            "sepses:name": raw_entity.get("name"),
+            "sepses:description": raw_entity.get("description"),
+            "__uri_key__": mitre_id,
+        }
+        if stix_type in ("malware", "tool"):
+            mapped["sepses:softwareType"] = stix_type
+        aliases = [a for a in raw_entity.get("aliases") or raw_entity.get("x_mitre_aliases") or []
+                   if a and a != raw_entity.get("name")]
+        if aliases:
+            mapped["sepses:alias"] = aliases
         return {k: v for k, v in mapped.items() if v is not None}

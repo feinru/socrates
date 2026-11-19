@@ -63,6 +63,31 @@
   margin-bottom: 0;
 }
 
+/* GFM tables in agent answers: scroll horizontally instead of overflowing on narrow screens */
+.tableWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.6rem 0 1.25rem;
+}
+
+.tableWrapper table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.tableWrapper th,
+.tableWrapper td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableWrapper th {
+  background-color: var(--bg-sidebar);
+  color: var(--text-primary);
+}
+
 .markdownOutput ul, .markdownOutput ol {
   padding-left: 1.4rem;
   margin-top: 0.6rem;
@@ -379,3 +404,167 @@
   display: inline-block;
 }
 
+
+/* Agent process panel: compact header + one-line steps; each step expands to its query and result */
+.processPanel {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 100%;
+}
+
+.processPanel > summary,
+.stepRow {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.processPanel > summary::-webkit-details-marker,
+.stepRow::-webkit-details-marker {
+  display: none;
+}
+
+.processHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+}
+
+.processHeader:hover {
+  color: var(--text-primary);
+}
+
+/* Chevron: points right when collapsed, down when open (same as the step rows) */
+.processHeader::after {
+  content: "";
+  width: 0.38rem;
+  height: 0.38rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.processPanel[open] > .processHeader::after {
+  transform: translateY(-2px) rotate(45deg);
+}
+
+/* No outline after a mouse click; keep a visible ring for keyboard users */
+.processPanel summary:focus {
+  outline: none;
+}
+
+.processPanel summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.processLive {
+  font-style: italic;
+  animation: stepPulse 1.6s ease-in-out infinite;
+}
+
+.processSteps {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+}
+
+.stepRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  min-width: 0;
+}
+
+.stepRow:hover .stepText,
+.stepRow:hover .stepOutcome {
+  color: var(--accent);
+}
+
+.stepVerb {
+  flex: 0 0 auto;
+  min-width: 6.5rem;
+  color: var(--text-secondary);
+}
+
+.stepText {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stepOutcome {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.85em;
+}
+
+/* Right-pointing chevron that turns down when the step is expanded */
+.stepOutcome::after {
+  content: "";
+  width: 0.38rem;
+  height: 0.38rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.processSteps details[open] > .stepRow .stepOutcome::after {
+  transform: rotate(45deg);
+}
+
+.step_error .stepOutcome {
+  color: #b32424;
+}
+
+.stepSpinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px solid var(--border-dark);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: stepSpin 0.8s linear infinite;
+}
+
+.stepDetails {
+  padding: 0 0 0.25rem;
+}
+
+/* Tighter spacing than code blocks inside answers */
+.stepDetails .codeContainer {
+  margin: 0.4rem 0;
+}
+
+@keyframes stepPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes stepSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  .stepVerb {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .processLive,
+  .stepSpinner {
+    animation: none;
+  }
+}

@@ -1,11 +1,8 @@
 langgraph
-langchain
-langchain-google-genai
 python-dotenv
 rdflib
 requests
-matplotlib
-pandas
 pyshacl
 orjson
 ijson
+chromadb

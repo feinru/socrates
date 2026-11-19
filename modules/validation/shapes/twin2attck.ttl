@@ -1,0 +1,16 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix attck: <http://w3id.org/sepses/vocab/ref/attack#> .
+@prefix shape: <http://w3id.org/sepses/shape/> .
+
+shape:EnterpriseTwinShape
+    a sh:NodeShape ;
+    sh:targetSubjectsOf attck:enterpriseTwin ;
+    sh:pattern "^http://w3id\\.org/sepses/resource/attack/T[0-9]{4}(\\.[0-9]{3})?$" ;
+    sh:property [
+        sh:path attck:enterpriseTwin ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:pattern "^http://w3id\\.org/sepses/resource/attack/T[0-9]{4}(\\.[0-9]{3})?$" ;
+        sh:severity sh:Violation ;
+        sh:message "attck:enterpriseTwin must link two SEPSES ATT&CK technique IRIs" ;
+    ] .

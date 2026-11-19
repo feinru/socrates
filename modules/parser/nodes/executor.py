@@ -31,7 +31,9 @@ def _format_literal(pred_name: str, value: Any) -> str:
         bool_str = "true" if value and str(value).lower() in ("true", "1") else "false"
         return f'"{bool_str}"^^<http://www.w3.org/2001/XMLSchema#boolean>'
 
-    return json.dumps(str(value))
+    # ensure_ascii=False: ASCII-only output escapes non-BMP characters as UTF-16
+    # surrogate pairs (\ud83d\udcf7), which are invalid Turtle escapes.
+    return json.dumps(str(value), ensure_ascii=False)
 
 
 def build_subject_uri(

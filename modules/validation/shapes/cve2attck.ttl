@@ -1,0 +1,17 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix cve: <http://w3id.org/sepses/vocab/ref/cve#> .
+@prefix shape: <http://w3id.org/sepses/shape/> .
+
+shape:CVErelatedAttackPatternShape
+    a sh:NodeShape ;
+    sh:targetSubjectsOf cve:relatedAttackPattern ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^http://w3id\\.org/sepses/resource/cve/CVE-[0-9]{4}-[0-9]+$" ;
+    sh:property [
+        sh:path cve:relatedAttackPattern ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:pattern "^http://w3id\\.org/sepses/resource/attack/T[0-9]{4}(\\.[0-9]{3})?$" ;
+        sh:severity sh:Violation ;
+        sh:message "cve:relatedAttackPattern target must be a SEPSES ATT&CK technique IRI (T#### or T####.###)" ;
+    ] .
